@@ -10,8 +10,8 @@
       </div>
     </div>
     <el-table :data="orderList" style="width: 100%">
-      <el-table-column prop="id" label="ID" />
-      <el-table-column label="任务类型">
+      <el-table-column prop="id" label="ID" width="100" />
+      <el-table-column label="任务类型" width="100">
         <template #default="scope">
           {{
             Array.from(
@@ -24,11 +24,11 @@
           }}
         </template>
       </el-table-column>
-      <el-table-column prop="terminal" label="终端" />
-      <el-table-column prop="total_amount" label="金额" />
-      <el-table-column prop="total_pages" label="页数" />
-      <el-table-column prop="payment" label="支付单号" />
-      <el-table-column prop="status" label="状态">
+      <el-table-column prop="terminal" label="终端" width="100" />
+      <el-table-column prop="total_amount" label="金额" width="100" />
+      <el-table-column prop="total_pages" label="页数" width="100" />
+      <el-table-column prop="payment" label="支付单号" width="100" />
+      <el-table-column prop="status" label="状态" width="120">
         <template #default="scope">
           <el-tag
             :type="scope.row.status === 'completed' ? 'success' : 'danger'"
@@ -40,6 +40,22 @@
       <el-table-column prop="created_at" label="创建时间">
         <template #default="scope">
           {{ formatTime(scope.row.created_at) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="订单管理">
+        <template #default="scope">
+          <el-button
+            type="primary"
+            link
+            @click="cleanupOrderFileAction(scope.row.id)"
+            >清理文件</el-button
+          >
+          <el-button
+            type="danger"
+            link
+            @click="markOrderFailedAction(scope.row.id)"
+            >标记失败</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
@@ -59,8 +75,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getOperationOrders, getOperationOrderById } from "@/api/operation";
+import {
+  getOperationOrders,
+  getOperationOrderById,
+  cleanupOrderFile,
+  markOrderFailed
+} from "@/api/operation";
 import { formatTime } from "@/utils/format";
+import { ElMessage } from "element-plus";
 
 const orderList = ref([]);
 const dialogVisible = ref(false);
@@ -79,6 +101,28 @@ const getAllOrders = () => {
   getOperationOrders().then(res => {
     orderList.value = res.slice(0, 100);
   });
+};
+
+const cleanupOrderFileAction = (id: string | number) => {
+  cleanupOrderFile(id)
+    .then(res => {
+      ElMessage.success("清理文件成功");
+      getAllOrders();
+    })
+    .catch(err => {
+      ElMessage.error(err.response?.data?.error);
+    });
+};
+
+const markOrderFailedAction = (id: string | number) => {
+  markOrderFailed(id)
+    .then(res => {
+      ElMessage.success("标记失败成功");
+      getAllOrders();
+    })
+    .catch(err => {
+      ElMessage.error(err.response?.data?.error);
+    });
 };
 
 onMounted(() => {

@@ -3,42 +3,72 @@
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-2xl font-bold">打印机列表</h1>
       <div class="flex items-center gap-2">
-        <el-button type="primary" plain @click="paperDialogVisible = true"
-          >增加纸张</el-button>
-        <el-button type="primary" plain @click="AddAction"
-          >添加打印机</el-button>
-        <el-button type="primary" @click="searchDialogVisible = true">查询订单</el-button>
-        <el-button type="primary" @click="getPrinterListData">全部打印机</el-button>
+        <el-button type="primary" plain @click="searchDialogVisible = true"
+          >查询订单</el-button
+        >
+        <el-button type="primary" @click="getPrinterListData"
+          >全部打印机</el-button
+        >
       </div>
     </div>
     <el-table :data="tableData" style="width: 100%">
-      <el-table-column prop="id" label="ID" />
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="model" label="类型" />
-      <el-table-column prop="is_active" label="状态">
+      <el-table-column prop="id" label="ID" width="40" />
+      <el-table-column prop="name" label="名称" width="100" />
+      <el-table-column prop="model" label="类型" width="100" />
+      <el-table-column prop="is_active" label="状态" width="100">
         <template #default="scope">
           <el-tag :type="scope.row.is_online ? 'success' : 'danger'">
             {{ scope.row.is_online ? "在线" : "离线" }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="location" label="位置" />
-      <el-table-column prop="paper_count" label="纸张余量">
+      <el-table-column prop="location" label="位置" width="100" />
+      <el-table-column prop="paper_count" label="纸张余量" width="100">
         <template #default="scope">
           {{ scope.row.latest_snapshot.paper_remaining }}
         </template>
       </el-table-column>
-      <el-table-column prop="updated_at" label="更新时间">
+      <el-table-column prop="updated_at" label="更新时间" width="180">
         <template #default="scope">
           {{ formatTime(scope.row.updated_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="管理" width="250">
         <template #default="scope">
-          <el-button type="primary" size="small" @click="handleEdit(scope.row)">
+          <div class="flex flex-wrap items-center gap-1">
+            <el-button size="small" @click="getSecretKey(scope.row.id)"
+              >获取密钥</el-button
+            >
+            <el-button
+              class="table-button-1"
+              type="primary"
+              plain
+              size="small"
+              @click="AddPaperAction(scope.row.id)"
+              >增加纸张</el-button
+            >
+            <el-button
+              class="table-button-1"
+              type="warning"
+              size="small"
+              @click="checkNotificationAction(scope.row.id)"
+              >通知详情</el-button
+            >
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="编辑/删除">
+        <template #default="scope">
+          <el-button
+            link
+            type="primary"
+            size="small"
+            @click="handleEdit(scope.row)"
+          >
             编辑
           </el-button>
           <el-button
+            link
             type="danger"
             size="small"
             @click="handleDelete(scope.row)"
@@ -55,6 +85,9 @@
         </template>
       </el-table-column> -->
     </el-table>
+    <el-button type="primary" plain style="width: 100%; margin-top: 10px" @click="AddAction"
+      >添加打印机</el-button
+    >
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑打印机' : '添加打印机'"
@@ -78,24 +111,54 @@
         <el-button type="primary" @click="ConfirmAction">确定</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="paperDialogVisible" title="增加纸张">
+    <el-dialog
+      v-model="paperDialogVisible"
+      :title="
+        isSecretKey ? '获取密钥' : isCheckNotification ? '通知详情' : '增加纸张'
+      "
+    >
       <el-form :model="paperForm">
-        <el-form-item label="终端" label-width="40px">
-          <el-input type="number" v-model="paperForm.terminal" />
+        <el-form-item label="终端" :label-width="isCheckNotification ? '60px' : '40px'">
+          <el-input
+            v-model="paperForm.terminal"
+            type="number"
+            disabled
+            v-if="!isCheckNotification"
+          />
+          <el-input
+            v-model="notificationForm.terminal"
+            type="number"
+            disabled
+            v-if="isCheckNotification"
+          />
         </el-form-item>
-        <el-form-item label="数量" label-width="40px">
-          <el-input type="number" v-model="paperForm.added_count" />
+        <el-form-item
+          v-if="!isSecretKey && !isCheckNotification"
+          label="数量"
+          label-width="40px"
+        >
+          <el-input v-model="paperForm.added_count" type="number" />
+        </el-form-item>
+        <el-form-item v-if="isSecretKey" label="密钥" label-width="40px">
+          <el-input v-model="secretKey" type="textarea" :rows="2" disabled />
+        </el-form-item>
+        <el-form-item
+          v-if="isCheckNotification && !isSecretKey"
+          label="通知ID"
+          label-width="60px"
+        >
+          <el-input v-model="notificationForm.notification_id" type="number" />
         </el-form-item>
       </el-form>
-      <template #footer>
+      <template #footer v-if="!isSecretKey">
         <el-button @click="paperDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="AddPaper">确定</el-button>
+        <el-button type="primary" @click="makeConfirm">确定</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="searchDialogVisible" title="查询订单">
       <el-form :model="searchForm">
         <el-form-item label="终端" label-width="40px">
-          <el-input type="number" v-model="searchForm.terminal" />
+          <el-input v-model="searchForm.terminal" type="number" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -113,7 +176,9 @@ import {
   updatePrinter,
   deletePrinter,
   getPrinterById,
-  addPaper
+  addPaper,
+  getPrinterSecretKey,
+  checkNotification
 } from "@/api/printer";
 import { onMounted } from "vue";
 import { ref } from "vue";
@@ -126,6 +191,9 @@ const dialogVisible = ref(false);
 const paperDialogVisible = ref(false);
 const searchDialogVisible = ref(false);
 const isEdit = ref(false);
+const isSecretKey = ref(false);
+const isCheckNotification = ref(false);
+const secretKey = ref("");
 const form = ref({
   code: "",
   name: "",
@@ -136,6 +204,10 @@ const form = ref({
 const paperForm = ref({
   terminal: 0,
   added_count: 0
+});
+const notificationForm = ref({
+  terminal: 0,
+  notification_id: 0
 });
 const searchForm = ref({
   terminal: ""
@@ -221,8 +293,33 @@ const handleDelete = (row: any) => {
     ElMessage.success("删除成功");
   });
 };
-
-const AddPaper = () => {
+const AddPaperAction = (id: number) => {
+  paperDialogVisible.value = true;
+  paperForm.value.terminal = id;
+  isSecretKey.value = false;
+  isCheckNotification.value = false;
+};
+const makeConfirm = async () => {
+  if (isSecretKey.value) {
+    paperDialogVisible.value = false;
+    isSecretKey.value = false;
+    ElMessage.success("获取密钥成功");
+    return;
+  }
+  if (isCheckNotification.value) {
+    await checkNotification({
+      terminal_id: notificationForm.value.terminal,
+      notification_id: Number(notificationForm.value.notification_id)
+    });
+    paperDialogVisible.value = false;
+    isCheckNotification.value = false;
+    ElMessage.success("检查通知成功");
+    notificationForm.value = {
+      terminal: 0,
+      notification_id: 0
+    };
+    return;
+  }
   addPaper({
     terminal: paperForm.value.terminal,
     added_count: paperForm.value.added_count
@@ -236,10 +333,25 @@ const AddPaper = () => {
   });
 };
 
+const checkNotificationAction = (id: number) => {
+  paperDialogVisible.value = true;
+  isCheckNotification.value = true;
+  isSecretKey.value = false;
+  notificationForm.value.terminal = id;
+};
+
 const handleSearch = () => {
   getPrinterById(searchForm.value.terminal).then(res => {
     tableData.value = [res];
     searchDialogVisible.value = false;
+  });
+};
+
+const getSecretKey = (id: string) => {
+  isSecretKey.value = true;
+  getPrinterSecretKey(id).then(res => {
+    secretKey.value = res.secret_key;
+    paperDialogVisible.value = true;
   });
 };
 
@@ -289,5 +401,8 @@ onMounted(() => {
       border-radius: 20px;
     }
   }
+}
+.table-button-1 {
+  margin-left: 0 !important;
 }
 </style>

@@ -8,12 +8,12 @@
       </div>
     </div>
     <el-table :data="paymentList" style="width: 100%">
-      <el-table-column prop="id" label="ID" />
-      <el-table-column prop="terminal" label="终端" />
-      <el-table-column prop="amount" label="金额" />
-      <el-table-column prop="payment_method" label="支付方式" />
-      <el-table-column prop="reference_id" label="支付单号" />
-      <el-table-column prop="status" label="状态">
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="terminal" label="终端" width="80" />
+      <el-table-column prop="amount" label="金额" width="80" />
+      <el-table-column prop="payment_method" label="支付方式" width="100" />
+      <el-table-column prop="reference_id" label="支付单号" width="200" />
+      <el-table-column prop="status" label="状态" width="150">
         <template #default="scope">
           <el-tag :type="scope.row.status === 'SUCCESS' ? 'success' : 'danger'">
             {{ scope.row.status }}
@@ -48,7 +48,7 @@
           <el-input v-model="refundForm.reason" />
         </el-form-item>
         <el-form-item label="情况描述">
-          <textarea v-model="refundForm.description" />
+          <el-input v-model="refundForm.description" type="textarea" />
         </el-form-item>
       </el-form>
       <template #footer>
